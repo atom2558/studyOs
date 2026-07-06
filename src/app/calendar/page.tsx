@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Loader2, Trash2, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -10,6 +10,7 @@ type Schedule = {
   title: string;
   event_date: string;
   event_time?: string | null;
+  image_url?: string | null;
   created_at: string;
 };
 
@@ -24,6 +25,12 @@ export default function CalendarPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState("");
+  
+  // Image Upload State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchSessionAndSchedules = async () => {
@@ -50,6 +57,47 @@ export default function CalendarPage() {
     fetchSessionAndSchedules();
   }, [router]);
 
+  // Handle Paste Event
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!showAddForm) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            handleFileSelect(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [showAddForm]);
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileSelect(e.target.files[0]);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
@@ -60,7 +108,30 @@ export default function CalendarPage() {
     e.preventDefault();
     if (!newTitle.trim() || !userId) return;
 
-    // YYYY-MM-DD
+    setIsUploading(true);
+    let uploadedImageUrl = null;
+
+    // Upload Image if selected
+    if (selectedFile) {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('schedule_images')
+        .upload(filePath, selectedFile);
+
+      if (!uploadError && uploadData) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('schedule_images')
+          .getPublicUrl(filePath);
+        uploadedImageUrl = publicUrl;
+      } else {
+        console.error("Upload error:", uploadError);
+        alert("อัปโหลดรูปไม่สำเร็จ รบกวนเช็คว่าสร้าง Bucket 'schedule_images' แบบ Public แล้วหรือยังครับ");
+      }
+    }
+
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
     const newScheduleData = {
@@ -68,6 +139,7 @@ export default function CalendarPage() {
       title: newTitle,
       event_date: dateStr,
       event_time: newTime || null,
+      image_url: uploadedImageUrl,
     };
 
     const tempId = Date.now().toString();
@@ -75,7 +147,9 @@ export default function CalendarPage() {
     setSchedules([...schedules, tempSchedule]);
     setNewTitle("");
     setNewTime("");
+    removeFile();
     setShowAddForm(false);
+    setIsUploading(false);
 
     const { data, error } = await supabase.from("schedules").insert([newScheduleData]).select().single();
     if (error) {
@@ -86,10 +160,20 @@ export default function CalendarPage() {
     }
   };
 
-  const deleteSchedule = async (id: string) => {
+  const deleteSchedule = async (id: string, imageUrl?: string | null) => {
     const prev = [...schedules];
     setSchedules(schedules.filter(s => s.id !== id));
     
+    // Delete image from storage if exists
+    if (imageUrl) {
+      const urlParts = imageUrl.split('/');
+      const fileName = urlParts.pop();
+      const folderName = urlParts.pop();
+      if (fileName && folderName) {
+        await supabase.storage.from('schedule_images').remove([`${folderName}/${fileName}`]);
+      }
+    }
+
     const { error } = await supabase.from("schedules").delete().eq("id", id);
     if (error) {
       console.error(error);
@@ -216,33 +300,72 @@ export default function CalendarPage() {
                   onChange={(e) => setNewTime(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">ยกเลิก</button>
-                  <button type="submit" className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-500">บันทึก</button>
+                
+                {/* Image Upload UI */}
+                <div className="w-full bg-slate-900 border border-dashed border-slate-700 hover:border-blue-500 transition-colors rounded-lg p-4 text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  {previewUrl ? (
+                    <div className="relative inline-block">
+                      <img src={previewUrl} alt="Preview" className="max-h-32 rounded-md object-contain" />
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.stopPropagation(); removeFile(); }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:scale-110 transition-transform"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-500 text-sm">
+                      <ImageIcon size={24} className="mb-2" />
+                      <p>คลิกเพื่อเลือกไฟล์ หรือ `Ctrl+V` วางรูปได้เลย</p>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white" disabled={isUploading}>ยกเลิก</button>
+                  <button type="submit" disabled={isUploading} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-500 flex items-center gap-2">
+                    {isUploading && <Loader2 size={16} className="animate-spin" />}
+                    บันทึก
+                  </button>
                 </div>
               </form>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {dayEvents.length === 0 ? (
                 <div className="text-center p-6 text-slate-500 border border-dashed border-slate-700 rounded-lg">
                   ไม่มีตารางในวันนี้
                 </div>
               ) : (
                 dayEvents.map(event => (
-                  <div key={event.id} className="p-4 bg-slate-800 rounded-lg border border-slate-700 flex justify-between items-center group">
-                    <div>
-                      <h4 className="text-white font-medium">{event.title}</h4>
-                      {event.event_time && (
-                        <p className="text-sm text-blue-400 mt-1">{event.event_time}</p>
-                      )}
+                  <div key={event.id} className="p-4 bg-slate-800 rounded-lg border border-slate-700 flex flex-col gap-3 group relative overflow-hidden">
+                    <div className="flex justify-between items-start z-10">
+                      <div>
+                        <h4 className="text-white font-medium">{event.title}</h4>
+                        {event.event_time && (
+                          <p className="text-sm text-blue-400 mt-1">{event.event_time}</p>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => deleteSchedule(event.id, event.image_url)}
+                        className="text-slate-500 bg-slate-900/50 p-1 rounded-md hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => deleteSchedule(event.id)}
-                      className="text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {event.image_url && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900/50 flex justify-center">
+                        <img src={event.image_url} alt="Attached" className="max-h-48 object-contain" />
+                      </div>
+                    )}
                   </div>
                 ))
               )}
