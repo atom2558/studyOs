@@ -26,9 +26,10 @@ export default function Home() {
             </a>
             <a
               className="rounded-full border-2 border-solid border-slate-700 transition-all flex items-center justify-center hover:bg-slate-800 hover:border-slate-600 text-lg sm:text-xl h-14 px-8 font-medium"
-              href="/dashboard"
+              href="/downloads/studyOs.exe"
+              download
             >
-              ดูฟีเจอร์ทั้งหมด
+              💻 ดาวน์โหลดสำหรับ PC
             </a>
           </div>
 
