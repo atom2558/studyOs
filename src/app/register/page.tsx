@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { BookOpen, UserPlus, Loader2 } from "lucide-react";
+import { BookOpen, UserPlus, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,9 +39,8 @@ export default function RegisterPage() {
 
         setSuccess(true);
         setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 2000);
+          router.push("/login");
+        }, 3000);
       }
     } catch (err: any) {
       setError(err.message || "เกิดข้อผิดพลาดในการสมัครสมาชิก");
@@ -64,14 +63,17 @@ export default function RegisterPage() {
         <p className="text-slate-400 text-center mb-8">เข้าร่วม studyOs และเริ่มเรียนรู้ไปกับ AI</p>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-sm">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 text-sm flex items-center gap-3">
+            <AlertCircle size={20} />
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg mb-6 text-sm flex items-center justify-center">
-            สมัครสมาชิกสำเร็จ! กำลังพาดำเนินการต่อ...
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-lg mb-6 flex flex-col items-center justify-center gap-2 font-medium text-center">
+            <div className="flex items-center gap-2"><CheckCircle2 size={20} /> สมัครสมาชิกสำเร็จ!</div>
+            <p className="text-sm font-normal">กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยันตัวตน</p>
+            <p className="text-emerald-500/70 text-xs mt-1">ระบบกำลังพากลับไปหน้าเข้าสู่ระบบ...</p>
           </div>
         )}
 

@@ -83,7 +83,7 @@ export default function Dashboard() {
               <Flame size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">12<span className="text-lg text-slate-500 font-normal"> วัน</span></p>
+          <p className="text-3xl font-bold">0<span className="text-lg text-slate-500 font-normal"> วัน</span></p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
@@ -93,7 +93,7 @@ export default function Dashboard() {
               <BookOpen size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">2.5<span className="text-lg text-slate-500 font-normal"> ชม.</span></p>
+          <p className="text-3xl font-bold">0<span className="text-lg text-slate-500 font-normal"> ชม.</span></p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
@@ -103,7 +103,7 @@ export default function Dashboard() {
               <Target size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">85%</p>
+          <p className="text-lg font-bold text-slate-500">รอเก็บข้อมูล...</p>
         </div>
       </div>
 
@@ -136,11 +136,9 @@ export default function Dashboard() {
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <BookOpen className="text-purple-500" /> แผนการอ่านจาก AI Coach
           </h2>
-          <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-            <h3 className="font-semibold text-purple-300 mb-2">ข้อแนะนำสำหรับวันนี้:</h3>
-            <p className="text-slate-300 leading-relaxed text-sm">
-              "ดูเหมือนเมื่อวานคุณจะใช้เวลาทำโจทย์คณิตศาสตร์นานกว่าปกติ วันนี้ผมแนะนำให้คุณโฟกัสกับการทบทวนชีววิทยาก่อน เพื่อไม่ให้สมองล้าจนเกินไปครับ สู้ๆ! ✌️"
-            </p>
+          <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col items-center justify-center h-32 text-center text-slate-500">
+            <p>ระบบ AI Coach ต้องการข้อมูลการเรียนของคุณเพิ่มเติม</p>
+            <p className="text-sm">กรุณาบันทึก To-Do หรือใช้งานแอปสักระยะหนึ่ง</p>
           </div>
         </div>
       </div>
