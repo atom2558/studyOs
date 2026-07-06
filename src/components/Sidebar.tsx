@@ -8,8 +8,15 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // If we are on the landing page (/) we might not want to show the sidebar, but let's just show it everywhere for the MVP, or redirect / to /dashboard.
-  if (pathname === "/") return null; // Hide sidebar on landing page
+  // Hide sidebar on landing page, login, or register
+  if (pathname === "/" || pathname === "/login" || pathname === "/register") {
+    return null;
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const links = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -52,10 +59,7 @@ export default function Sidebar() {
 
       <div className="p-4 border-t border-slate-800">
         <button 
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.push("/login");
-          }}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full text-left text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
         >
           <LogOut size={20} />
