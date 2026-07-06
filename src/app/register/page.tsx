@@ -32,9 +32,10 @@ export default function RegisterPage() {
       if (data.user) {
         // We will create a profiles table later. For now we just create the auth user.
         // But let's try inserting to 'profiles' anyway (it might fail if table doesn't exist yet, so we ignore error for MVP)
-        await supabase.from("profiles").insert([
+        const { error: profileError } = await supabase.from("profiles").insert([
           { id: data.user.id, nickname: nickname }
-        ]).catch(console.error); // Catch silently if table not ready
+        ]);
+        if (profileError) console.error(profileError);
 
         setSuccess(true);
         setTimeout(() => {
