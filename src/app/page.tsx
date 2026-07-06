@@ -20,13 +20,13 @@ export default function Home() {
           <div className="flex gap-4 items-center flex-col sm:flex-row mb-16">
             <a
               className="rounded-full border border-solid border-transparent transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 text-lg sm:text-xl h-14 px-8 font-semibold shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-              href="#"
+              href="/dashboard"
             >
               เริ่มต้นใช้งานฟรี
             </a>
             <a
               className="rounded-full border-2 border-solid border-slate-700 transition-all flex items-center justify-center hover:bg-slate-800 hover:border-slate-600 text-lg sm:text-xl h-14 px-8 font-medium"
-              href="#"
+              href="/dashboard"
             >
               ดูฟีเจอร์ทั้งหมด
             </a>
