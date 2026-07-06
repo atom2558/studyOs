@@ -60,10 +60,7 @@ export default function TodoPage() {
     setTodos(todos.filter((todo) => todo.id !== id));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processImageFile = async (file: File) => {
     setIsUploading(true);
     try {
       // Convert image to base64
@@ -98,12 +95,40 @@ export default function TodoPage() {
       console.error("Error processing image:", error);
       alert("เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ");
     } finally {
-      // Reset input so the same file can be selected again
-      e.target.value = "";
-      // Note: We use setTimeout to hide loading after a bit so user sees it finish if it was very fast
       setTimeout(() => setIsUploading(false), 500);
     }
   };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    await processImageFile(file);
+    e.target.value = "";
+  };
+
+  // Handle global paste event for images
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            processImageFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("paste", handleGlobalPaste);
+    return () => {
+      window.removeEventListener("paste", handleGlobalPaste);
+    };
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -179,8 +204,8 @@ export default function TodoPage() {
                       <Circle className="text-slate-500 flex-shrink-0" />
                     )}
                     <span
-                      className={`text-lg transition-all ${
-                        todo.completed ? "line-through text-slate-500" : "text-slate-200"
+                      className={`text-lg font-medium transition-all ${
+                        todo.completed ? "line-through text-slate-500" : "text-white"
                       }`}
                     >
                       {todo.title}
