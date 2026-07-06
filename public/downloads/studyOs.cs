@@ -12,14 +12,14 @@ namespace StudyOsApp
             try 
             {
                 // This command launches Microsoft Edge in "App Mode" (no tabs, no URL bar), making it look like a native desktop app.
-                Process.Start("msedge.exe", "--app=https://studyos-tnzt.onrender.com");
+                Process.Start("msedge.exe", "--app=https://studyos-tnzt.onrender.com/dashboard");
             } 
             catch (Exception)
             {
                 // Fallback to default browser if Edge is not available
                 try 
                 {
-                    Process.Start("https://studyos-tnzt.onrender.com");
+                    Process.Start("https://studyos-tnzt.onrender.com/dashboard");
                 } 
                 catch (Exception ex)
                 {
