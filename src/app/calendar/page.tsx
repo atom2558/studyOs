@@ -9,7 +9,7 @@ type Schedule = {
   user_id: string;
   title: string;
   event_date: string;
-  event_time?: string;
+  event_time?: string | null;
   created_at: string;
 };
 
