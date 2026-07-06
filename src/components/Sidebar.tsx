@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { LayoutDashboard, CheckSquare, MessageSquare, LogOut, BookOpen } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   // If we are on the landing page (/) we might not want to show the sidebar, but let's just show it everywhere for the MVP, or redirect / to /dashboard.
   if (pathname === "/") return null; // Hide sidebar on landing page
@@ -48,9 +50,15 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-slate-800">
-        <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
+        <button 
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.push("/login");
+          }}
+          className="flex items-center gap-3 px-4 py-3 w-full text-left text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
+        >
           <LogOut size={20} />
-          <span className="font-medium">Logout (Demo)</span>
+          <span className="font-medium">ออกจากระบบ</span>
         </button>
       </div>
     </aside>

@@ -1,94 +1,150 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, Circle, Trash2, Plus, Camera, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 type Todo = {
   id: string;
+  user_id: string;
   title: string;
   completed: boolean;
+  created_at?: string;
 };
 
 export default function TodoPage() {
+  const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTask, setNewTask] = useState("");
-
   const [isUploading, setIsUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load from local storage
+  // Load from Supabase
   useEffect(() => {
-    const saved = localStorage.getItem("studyos_todos");
-    if (saved) {
-      try {
-        setTodos(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
+    const fetchSessionAndTodos = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+        return;
       }
-    } else {
-      // Default tasks for MVP demo
-      setTodos([
-        { id: "1", title: "อ่านชีวะ บทที่ 1-2", completed: true },
-        { id: "2", title: "ทำโจทย์คณิตศาสตร์ 30 ข้อ", completed: false },
-        { id: "3", title: "สรุปคำศัพท์ภาษาอังกฤษ", completed: false },
-      ]);
-    }
-  }, []);
+      setUserId(session.user.id);
 
-  // Save to local storage whenever todos change
-  useEffect(() => {
-    localStorage.setItem("studyos_todos", JSON.stringify(todos));
-  }, [todos]);
+      const { data, error } = await supabase
+        .from("todos")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
 
-  const addTodo = (e: React.FormEvent) => {
+      if (error) {
+        console.error("Error fetching todos:", error);
+      } else if (data) {
+        setTodos(data);
+      }
+      setIsLoading(false);
+    };
+
+    fetchSessionAndTodos();
+  }, [router]);
+
+  const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.trim()) return;
-    setTodos([
-      { id: Date.now().toString(), title: newTask, completed: false },
-      ...todos,
-    ]);
+    if (!newTask.trim() || !userId) return;
+
+    const taskData = {
+      user_id: userId,
+      title: newTask,
+      completed: false,
+    };
+
+    // Optimistic UI update
+    const tempId = Date.now().toString();
+    setTodos([{ ...taskData, id: tempId } as Todo, ...todos]);
     setNewTask("");
+
+    // Save to Supabase
+    const { data, error } = await supabase.from("todos").insert([taskData]).select().single();
+    if (error) {
+      console.error("Error inserting todo:", error);
+      // Revert if error
+      setTodos((prev) => prev.filter((t) => t.id !== tempId));
+    } else if (data) {
+      // Update with real ID
+      setTodos((prev) => prev.map((t) => (t.id === tempId ? data : t)));
+    }
   };
 
-  const toggleTodo = (id: string) => {
+  const toggleTodo = async (id: string, currentStatus: boolean) => {
+    // Optimistic UI update
     setTodos(
       todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        todo.id === id ? { ...todo, completed: !currentStatus } : todo
       )
     );
+
+    const { error } = await supabase
+      .from("todos")
+      .update({ completed: !currentStatus })
+      .eq("id", id);
+      
+    if (error) {
+      console.error("Error toggling todo:", error);
+      // Revert if error
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, completed: currentStatus } : todo
+        )
+      );
+    }
   };
 
-  const deleteTodo = (id: string) => {
+  const deleteTodo = async (id: string) => {
+    // Optimistic UI update
+    const previousTodos = [...todos];
     setTodos(todos.filter((todo) => todo.id !== id));
+
+    const { error } = await supabase.from("todos").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting todo:", error);
+      // Revert if error
+      setTodos(previousTodos);
+    }
   };
 
   const processImageFile = async (file: File) => {
+    if (!userId) return;
     setIsUploading(true);
     try {
-      // Convert image to base64
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = async () => {
         const base64Image = reader.result as string;
 
-        // Send to API
         const response = await fetch("/api/vision", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64Image }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to extract tasks from image");
-        }
+        if (!response.ok) throw new Error("Failed to extract tasks");
 
         const data = await response.json();
         if (data.tasks && Array.isArray(data.tasks)) {
-          const newTodos = data.tasks.map((task: any, index: number) => ({
-            id: Date.now().toString() + index,
+          const newTasks = data.tasks.map((task: any) => ({
+            user_id: userId,
             title: task.title,
             completed: false,
           }));
           
-          setTodos((prev) => [...newTodos, ...prev]);
+          // Insert into Supabase
+          const { data: insertedData, error } = await supabase.from("todos").insert(newTasks).select();
+          
+          if (error) {
+            console.error("Error saving extracted tasks:", error);
+            alert("เกิดข้อผิดพลาดในการบันทึกงาน");
+          } else if (insertedData) {
+            setTodos((prev) => [...insertedData, ...prev]);
+          }
         }
       };
     } catch (error) {
@@ -107,7 +163,6 @@ export default function TodoPage() {
     e.target.value = "";
   };
 
-  // Handle global paste event for images
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -128,16 +183,24 @@ export default function TodoPage() {
     return () => {
       window.removeEventListener("paste", handleGlobalPaste);
     };
-  }, []);
+  }, [userId]); // Dependency on userId
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (isLoading) {
+    return (
+      <main className="ml-64 p-8 min-h-screen flex items-center justify-center text-slate-400">
+        <Loader2 size={32} className="animate-spin" />
+      </main>
+    );
+  }
 
   return (
     <main className="ml-64 p-8 min-h-screen">
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold mb-2">To-Do List ✅</h1>
-          <p className="text-slate-400">จัดการงานและการเรียนของคุณ (บันทึกอัตโนมัติในเบราว์เซอร์)</p>
+          <p className="text-slate-400">จัดการงานและการเรียนของคุณ (บันทึกอัตโนมัติบนคลาวด์)</p>
         </header>
 
         <form onSubmit={addTodo} className="mb-8 flex gap-3">
@@ -196,7 +259,7 @@ export default function TodoPage() {
                 >
                   <div
                     className="flex items-center gap-4 cursor-pointer flex-1"
-                    onClick={() => toggleTodo(todo.id)}
+                    onClick={() => toggleTodo(todo.id, todo.completed)}
                   >
                     {todo.completed ? (
                       <CheckCircle2 className="text-blue-500 flex-shrink-0" />

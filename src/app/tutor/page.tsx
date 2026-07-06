@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type Message = {
   role: "user" | "assistant";
@@ -25,6 +27,17 @@ export default function TutorPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const router = useRouter();
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
