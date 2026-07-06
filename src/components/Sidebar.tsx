@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, MessageSquare, LogOut, BookOpen, Calendar } from "lucide-react";
+import { LayoutDashboard, CheckSquare, MessageSquare, LogOut, BookOpen, Calendar, Target, Brain } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
@@ -22,6 +22,8 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "To-Do List", href: "/todo", icon: CheckSquare },
     { name: "Calendar", href: "/calendar", icon: Calendar },
+    { name: "Smart Planner", href: "/planner", icon: Brain },
+    { name: "Focus Mode", href: "/focus", icon: Target },
     { name: "AI Tutor", href: "/tutor", icon: MessageSquare },
   ];
 

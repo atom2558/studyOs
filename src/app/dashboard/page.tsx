@@ -8,6 +8,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [nickname, setNickname] = useState("นักเรียน");
   const [todos, setTodos] = useState<any[]>([]);
+  const [totalFocusMins, setTotalFocusMins] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,12 +22,13 @@ export default function Dashboard() {
       // Fetch Profile
       const { data: profile } = await supabase
         .from("profiles")
-        .select("nickname")
+        .select("nickname, total_focus_minutes")
         .eq("id", session.user.id)
         .single();
         
-      if (profile?.nickname) {
-        setNickname(profile.nickname);
+      if (profile) {
+        if (profile.nickname) setNickname(profile.nickname);
+        setTotalFocusMins(profile.total_focus_minutes || 0);
       }
 
       // Fetch Todos for preview
@@ -57,6 +59,8 @@ export default function Dashboard() {
 
   const completedCount = todos.filter(t => t.completed).length;
   const totalCount = todos.length;
+  const focusHours = Math.floor(totalFocusMins / 60);
+  const focusMins = totalFocusMins % 60;
 
   return (
     <main className="ml-64 p-8 min-h-screen">
@@ -93,7 +97,7 @@ export default function Dashboard() {
               <BookOpen size={20} />
             </div>
           </div>
-          <p className="text-3xl font-bold">0<span className="text-lg text-slate-500 font-normal"> ชม.</span></p>
+          <p className="text-3xl font-bold">{focusHours > 0 ? focusHours : focusMins}<span className="text-lg text-slate-500 font-normal"> {focusHours > 0 ? `ชม. ${focusMins} นาที` : 'นาที'}</span></p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
