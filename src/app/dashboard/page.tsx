@@ -66,7 +66,7 @@ export default function Dashboard() {
                   <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${task.status === "done" ? "bg-blue-500 border-blue-500" : "border-slate-500"}`}>
                     {task.status === "done" && <CheckCircle2 size={14} className="text-white" />}
                   </div>
-                  <span className={task.status === "done" ? "line-through text-slate-500" : ""}>{task.title}</span>
+                  <span className={task.status === "done" ? "line-through text-slate-500" : "text-white font-medium"}>{task.title}</span>
                 </div>
               </div>
             ))}

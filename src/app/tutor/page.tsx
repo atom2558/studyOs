@@ -69,7 +69,7 @@ export default function TutorPage() {
   return (
     <main className="ml-64 p-8 h-screen flex flex-col bg-slate-950">
       <header className="mb-6 flex-shrink-0">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
           <Bot className="text-blue-500" size={32} />
           AI Tutor Chat
         </h1>
